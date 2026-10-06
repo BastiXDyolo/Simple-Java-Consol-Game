@@ -1,0 +1,108 @@
+import java.util.*;
+import java.util.Scanner;
+import java.util.Random;
+
+public class Main {
+	public static void main(String[] args) {
+		
+		Scanner scanner = new Scanner(System.in);
+		Random random = new Random();
+		int playPlayer;
+		int ran = random.nextInt(3);
+		int action;
+		
+		System.out.println("Hello, World!");
+		
+		Player[] player = new Player[3];
+
+		player[0] = new Player("Warrior", 550, 550, 30);
+		player[1] = new Player("Mage", 200, 200, 60);
+		player [2] = new Player("Archer", 350, 350, 20);
+		
+		Enemy[] enemy = new Enemy[3];
+		
+		enemy[0] = new Enemy("Zombie", 150, 150, 10);
+		enemy[1] = new Enemy("Goblin", 100, 100, 15);
+		enemy[2] = new Enemy("Dragon", 350, 350, 20);
+
+
+		System.out.println("=== Player ===");
+		
+		System.out.println("(1) Warrior (HP:550)(AD:30)");
+		System.out.println("(2) Mage (HP:200)(AD:60)");
+		System.out.println("(3) Archer (HP:350)(AD:20)");
+		System.out.println("=== SELECT ===");
+		playPlayer = scanner.nextInt();
+		playPlayer--;
+		System.out.println("You Selected " + player[playPlayer].name);
+		
+		System.out.println("=== KAMPF ===");
+		System.out.println("HP: " + player[playPlayer].health + "/" + player[playPlayer].maxHealth);
+		System.out.println("\n\nGener: " + enemy[ran].name);
+		
+		
+
+
+		
+		System.out.println("HP: " + enemy[ran].health + "/" + enemy[ran].maxHealth);
+		
+		System.out.println("(1)ANGREIFEN\n" +
+										   "(2)HEILEN\n" +
+										   "(3)VLIEHEN\n");
+		
+		action = scanner.nextInt();
+		
+		if (action == 1)
+		{
+			player[playPlayer].attack(enemy[ran]);
+			System.out.println("Der Gegner hat nur noch " + enemy[ran].health + "/" + enemy[ran].maxHealth);
+			enemy[ran].attack(player[playPlayer]);
+			System.out.println("Du hast " + enemy[ran].attackDamage + " schaden bekommen");
+			}
+
+
+	}
+}
+
+class Player {
+
+	String name;
+	int health;
+	int maxHealth;
+	int attackDamage;
+
+	public Player(String name, int health, int maxHealth, int attackDamage) {
+		this.name = name;
+		this.health = health;
+		this.maxHealth = maxHealth;
+		this.attackDamage = attackDamage;
+	}
+
+	public void attack(Enemy target) {
+		target.health -= attackDamage;
+	}
+
+	public void heal() {
+
+	}
+}
+
+class Enemy {
+
+	String name;
+	int health;
+	int maxHealth;
+	int attackDamage;
+
+	public Enemy(String name, int health, int maxHealth, int attackDamage) {
+		this.name = name;
+		this.health = health;
+		this.maxHealth = maxHealth;
+		this.attackDamage = attackDamage;
+	}
+
+	public void attack(Player target) {
+		target.health -= attackDamage;
+	}
+
+}
