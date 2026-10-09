@@ -4,6 +4,7 @@ import java.util.Scanner;
 import java.util.Random;
 import java.util.ArrayList;
 
+// Spiel Start
 public class Main {
     public static void main(String[] args) throws InterruptedException {
         Game game = new Game();
@@ -11,6 +12,7 @@ public class Main {
     }
 }
 
+// Was kann Player und was hat Player für Werte
 class Player {
     String name;
     int health;
@@ -48,6 +50,7 @@ class Player {
     }
 }
 
+// Was kann Enemy und was hat Enemy für Werte
 class Enemy {
     String name;
     int health;
@@ -131,8 +134,6 @@ class Game{
 
         Enemy[] enemy = EnemyFactory.createEnemy();
 
-        Shop[] shop = new Shop[3];
-
         Inventory inventory = new Inventory();
 
         Item[] item = ItemFactory.createItem();
@@ -142,17 +143,15 @@ class Game{
         System.out.println
                 (
                         "=== Player ===" +
-                                "\n(1) Warrior (HP:550)(AD:30)" +
-                                "\n(2) Mage (HP:200)(AD:60)" +
-                                "\n(3) Archer (HP:350)(AD:20)\n" +
+                                "\n(1) Warrior (HP 550 | AD 30)" +
+                                "\n(2) Mage (HP 200 | AD 60)" +
+                                "\n(3) Archer (HP 350 | AD 20)\n" +
                                 "=== SELECT ==="
                 );
 
         plchoise = scanner.nextInt();
         plchoise--;
         System.out.println("You Selected " + player[plchoise].name);
-
-        inventory.addItem(item[1]);
 
         out: while(player[plchoise].health >= 0)
         {
@@ -175,17 +174,16 @@ class Game{
 
                 System.out.println
                         (
-                                "=== KAMPF ===" +
-                                        "\n\n------------------------------------" +
+                                "\n======== KAMPF ========" +
                                         "\nPlayer: " + player[plchoise].name +
                                         "\nHP: " + player[plchoise].health + "/" + player[plchoise].maxHealth +
                                         "\nCoins: " + player[plchoise].coins +
                                         "\nEP: " + player[plchoise].exp +
-                                        "\n------------------------------------" +
-                                        "\n\n\n------------------------------------" +
+                                        "\n-----------------------" +
+                                        "\n\n\n-----------------------" +
                                         "\nGegner: " + enemy[ran].name +
                                         "\nHP: " + enemy[ran].health + "/" + enemy[ran].maxHealth +
-                                        "\n------------------------------------" +
+                                        "\n=======================" +
                                         "\n\n(1) ANGREIFEN\n" + "(2) HEILEN\n" + "(3) INVENTAR\n" + "(4) FLIEHEN\n"
                         );
 
@@ -237,10 +235,11 @@ class Game{
                         actionInv--;
                         Item selectedItem = inventory.getItem(actionInv);
                         selectedItem.use(player[plchoise], enemy[ran]);
+                        inventory.removeItem(selectedItem);
 
-                        {
-                            IO.println("Ungültige Auswahl!");
-                        }
+                    {
+                        IO.println("Ungültige Auswahl!");
+                    }
 
                     break;
                     case 4:
@@ -249,15 +248,32 @@ class Game{
 
                 if (enemy[ran].health == 0)
                 {
-                    player[plchoise].coins += enemy[ran].coins;
-                    player[plchoise].exp += enemy[ran].exp;
                     System.out.println
                             (
-                                    "Du hast ein " + enemy[ran].name + " besiegt und hast " + enemy[ran].coins + " Coins und " + enemy[ran].exp + " EP bekommen!"
-
+                                    "Du hast ein " + enemy[ran].name + " besiegt und hast " + enemy[ran].coins + " Coins und " + enemy[ran].exp + " EP bekommen!" +
+                                            "\nDruecke Taste ENTER um weiter zu spielen!"
                             );
-
+                    loot.getMobDrop(player[plchoise], enemy[ran]);
                     loot.Chest(inventory, random);
+
+                    int ran1 = random.nextInt(2);
+                    int key = 1;
+
+                    if (key == ran1)
+                    {
+                        System.out.println("Du hast einen Shop gefunden!");
+                        System.out.println("Rein gehen?");
+                        System.out.println("(1) Ja");
+                        System.out.println("(2) Nein");
+
+                        int choice = scanner.nextInt();
+
+                        if (choice == 1)
+                        {
+                            ShopCreater.createShop(random, inventory, player[plchoise]);
+                        }
+                    }
+
                     break fight;
                 }
 
@@ -280,25 +296,37 @@ class Inventory{
         return items.get(index);
     }
 
+    public void removeItem(Item item){
+        items.remove(item);
+    }
+
     public int size() {
         return items.size();
     }
 }
 
 class Loot{
+    Scanner scanner = new Scanner(System.in);
 
-
-
-    public void Chest(Inventory inventory, Random random) throws InterruptedException {
-        int key = 3;
+    public void Chest(Inventory inventory, Random random) {
+        int key = random.nextInt(6);
         if (key == 3)
         {
             Item randomItem = ItemFactory.getRandom(random);
             inventory.addItem(randomItem);
             System.out.println("DU hast ein Chest gefunden, sehen wir nach was drinnen ist...");
-            Thread.sleep(700);
-            System.out.println("Du hast " + randomItem.name + " gefunden!");
+            System.out.println(
+                    "Du hast " + randomItem.name + " gefunden!" +
+                    "\nDruecke Taste ENTER um weiter zu spielen!"
+            );
+            scanner.nextLine();
         }
+    }
+
+    public void getMobDrop(Player player, Enemy enemy){
+        player.coins += enemy.coins;
+        player.exp += enemy.exp;
+        scanner.nextLine();
     }
 }
 
@@ -329,9 +357,11 @@ class ItemFactory {
 
     public static Item[] createItem() {
         return new Item[] {
-                new Item("OneShot Item", 1000, 0, 100, 80),
-                new Item("Heal(100)", 0, 100, 20, 15),
+                new Item("OneShot Item (1000 AD)", 1000, 0, 100, 80),
+                new Item("Heal Potion (+100 HP)", 0, 100, 20, 15),
+                new Item("Heavy Sword (120 AD | -10 HP)", 120, -10, 30, 20),
                 new Item("Test", 35, 25, 20, 15)
+                // new Item("CleanItem", 1000, 1000, 1000, 1000),
         };
     }
 
@@ -341,5 +371,54 @@ class ItemFactory {
         int ran = random.nextInt(items.length);
 
         return items[ran];
+    }
+}
+
+class ShopCreater{
+
+    public static Item[] createShop(Random random, Inventory inventory, Player player) {
+        Scanner scanner = new Scanner(System.in);
+        Item[] shopItems = new Item[3];
+
+        money: while (true) {
+
+            for (int i = 0; i < 3; i++) {
+                System.out.println();
+            }
+
+            int z = 1;
+
+            System.out.println("Coins: " + player.coins);
+            System.out.println("=== Shopify ===");
+
+            for (int i = 0; i < 3; i++) {
+                shopItems[i] = ItemFactory.getRandom(random);
+                System.out.println("(" + z + ") " + shopItems[i].name + " (" + shopItems[i].attackDamage + "AD | " + shopItems[i].heal + " HP)" + "   Coins: " + shopItems[i].price);
+                z++;
+            }
+            System.out.println("(" + z + ") Exit");
+            System.out.println("===============");
+
+            int choice = scanner.nextInt();
+
+            if (z == choice) {
+                return shopItems;
+            }
+
+            choice--;
+
+            if (player.coins >= shopItems[choice].price) {
+                player.coins -= shopItems[choice].price;
+            } else {
+                System.out.println("Nicht genuegend Geld!");
+                continue money;
+            }
+
+            inventory.addItem(shopItems[choice]);
+            System.out.println("\nThank You :)");
+            break money;
+
+        }
+        return shopItems;
     }
 }
