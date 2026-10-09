@@ -20,15 +20,18 @@ class Player {
     int attackDamage;
     int coins;
     int exp;
+    int level;
     boolean alive;
+    int expToNextLevel = 100;
 
-    public Player(String name, int health, int maxHealth, int attackDamage, int coins, int exp, boolean alive) {
+    public Player(String name, int health, int maxHealth, int attackDamage, int coins, int exp, boolean alive, int level) {
         this.name = name;
         this.health = health;
         this.maxHealth = maxHealth;
         this.attackDamage = attackDamage;
         this.coins = coins;
         this.exp = exp;
+        this.level = level;
         this.alive = alive;
     }
 
@@ -50,7 +53,7 @@ class Player {
     }
 }
 
-// Was kann Enemy und was hat Enemy für Werte
+// hier wird Enemy erstellt und Angriff gesteuert
 class Enemy {
     String name;
     int health;
@@ -75,6 +78,7 @@ class Enemy {
     }
 }
 
+// hier wird der shop erstellt
 class Shop {
     String name;
     int attackDamage;
@@ -89,6 +93,7 @@ class Shop {
     }
 }
 
+// Item Logik, hier werden Items erstellt und verwendet
 class Item{
     String name;
     int attackDamage;
@@ -124,22 +129,22 @@ class Item{
 class Game{
 
     public void play() throws InterruptedException {
+        // hier sind alle Klassen und Variablen, die ich oft gebraucht habe/wichtigsten
         Scanner scanner = new Scanner(System.in);
         Random random = new Random();
         int plchoise;
-        int ran = random.nextInt(3);
+        // ran = random
+        int ran;
         int action;
 
         Player[] player = PlayerFactory.createPlayers();
-
         Enemy[] enemy = EnemyFactory.createEnemy();
-
-        Inventory inventory = new Inventory();
-
         Item[] item = ItemFactory.createItem();
-
+        Inventory inventory = new Inventory();
+        Level level = new Level();
         Loot loot = new Loot();
 
+        // TUI
         System.out.println
                 (
                         "=== Player ===" +
@@ -153,14 +158,18 @@ class Game{
         plchoise--;
         System.out.println("You Selected " + player[plchoise].name);
 
+        // Kämpfen bis Player tot ist
         out: while(player[plchoise].health >= 0)
         {
             ran = random.nextInt(3);
             enemy[ran].health = enemy[ran].maxHealth;
+            int healSleep;
 
-            // Kämpfen bis
+            // Kämpfen bis Enemy tot ist
             fight: while (enemy[ran].health >= 0 || player[plchoise].health >= 0)
             {
+
+                // Schauen ob Player noch lebt, wenn nicht = spiel beenden
                 if (player[plchoise].health <= 0)
                 {
                     player[plchoise].revive();
@@ -169,16 +178,19 @@ class Game{
                                     "\nDu bist gestorben!" +
                                             "\nDas Spiel wird beendet!"
                             );
+                    // break erste while-Schleife
                     break out;
                 }
 
+                // TUI
                 System.out.println
                         (
                                 "\n======== KAMPF ========" +
                                         "\nPlayer: " + player[plchoise].name +
+                                        "\nLVL: " + player[plchoise].level +
                                         "\nHP: " + player[plchoise].health + "/" + player[plchoise].maxHealth +
                                         "\nCoins: " + player[plchoise].coins +
-                                        "\nEP: " + player[plchoise].exp +
+                                        "\nEP: " + player[plchoise].exp + "/" + player[plchoise].expToNextLevel +
                                         "\n-----------------------" +
                                         "\n\n\n-----------------------" +
                                         "\nGegner: " + enemy[ran].name +
@@ -187,10 +199,12 @@ class Game{
                                         "\n\n(1) ANGREIFEN\n" + "(2) HEILEN\n" + "(3) INVENTAR\n" + "(4) FLIEHEN\n"
                         );
 
+                // Auf die auswahl des Players reagieren
                 action = scanner.nextInt();
                 switch (action)
                 {
                     case 1:
+                        // Angriff Logik
                         player[plchoise].attack(enemy[ran]);
 
                         if (enemy[ran].health <= 0)
@@ -201,7 +215,7 @@ class Game{
                         {
                             enemy[ran].attack(player[plchoise]);
                         }
-
+                        // TUI
                         System.out.println
                                 (
                                         "Der Gegner hat noch " + enemy[ran].health + "/" + enemy[ran].maxHealth + " HP" +
@@ -211,10 +225,12 @@ class Game{
                         break;
 
                     case 2:
+                        // Player heal Logik
                         player[plchoise].heal();
                         break;
 
                     case 3:
+                        // Inventar Logik
                         int z = 1;
                         for(int i = 0; i < inventory.size(); i++)
                         {
@@ -243,17 +259,21 @@ class Game{
 
                     break;
                     case 4:
+                        // fliehen / exit game
                         break out;
                 }
 
+                // wenn Enemy tot gibt es dem Player coins, exp und mit Glück chest und shop
                 if (enemy[ran].health == 0)
                 {
+                    // TUI
                     System.out.println
                             (
                                     "Du hast ein " + enemy[ran].name + " besiegt und hast " + enemy[ran].coins + " Coins und " + enemy[ran].exp + " EP bekommen!" +
                                             "\nDruecke Taste ENTER um weiter zu spielen!"
                             );
-                    loot.getMobDrop(player[plchoise], enemy[ran]);
+                    loot.getEnemyDrop(player[plchoise], enemy[ran]);
+                    level.LevelUp(player[plchoise]);
                     loot.Chest(inventory, random);
 
                     int ran1 = random.nextInt(2);
@@ -261,6 +281,7 @@ class Game{
 
                     if (key == ran1)
                     {
+                        // TUI
                         System.out.println("Du hast einen Shop gefunden!");
                         System.out.println("Rein gehen?");
                         System.out.println("(1) Ja");
@@ -277,6 +298,7 @@ class Game{
                     break fight;
                 }
 
+                // Consolen schrubber(Console bereinigen)
                 for (int i = 0; i < 50; i++) {
                     System.out.println();
                 }
@@ -285,6 +307,7 @@ class Game{
     }
 }
 
+// managed das inventar bzw. es lagert items
 class Inventory{
     private ArrayList<Item> items = new ArrayList<>();
 
@@ -305,6 +328,7 @@ class Inventory{
     }
 }
 
+// Chest spawn Logik und Enemy Coin und exp Drops
 class Loot{
     Scanner scanner = new Scanner(System.in);
 
@@ -312,6 +336,7 @@ class Loot{
         int key = random.nextInt(6);
         if (key == 3)
         {
+            // TUI
             Item randomItem = ItemFactory.getRandom(random);
             inventory.addItem(randomItem);
             System.out.println("DU hast ein Chest gefunden, sehen wir nach was drinnen ist...");
@@ -323,25 +348,26 @@ class Loot{
         }
     }
 
-    public void getMobDrop(Player player, Enemy enemy){
+    public void getEnemyDrop(Player player, Enemy enemy){
         player.coins += enemy.coins;
         player.exp += enemy.exp;
         scanner.nextLine();
     }
 }
 
-
+// hier werden Player Charakter erstellt
 class PlayerFactory {
 
     public static Player[] createPlayers() {
         return new Player[] {
-                new Player("Warrior", 550, 550, 30, 0, 0, true),
-                new Player("Mage", 200, 200, 60, 0, 0, true),
-                new Player("Archer", 350, 350, 20, 0, 0, true)
+                new Player("Warrior", 550, 550, 30, 0, 0, true, 0),
+                new Player("Mage", 200, 200, 60, 0, 0, true, 0),
+                new Player("Archer", 350, 350, 20, 0, 0, true, 0)
         };
     }
 }
 
+// hier werden Enemys erstellt
 class EnemyFactory {
 
     public static Enemy[] createEnemy() {
@@ -353,6 +379,7 @@ class EnemyFactory {
     }
 }
 
+// hier werden alle items erstellt, hier mit Randomizer Logik
 class ItemFactory {
 
     public static Item[] createItem() {
@@ -374,34 +401,34 @@ class ItemFactory {
     }
 }
 
+// hiermit kann man sehr leicht den shop erstellen
 class ShopCreater{
 
     public static Item[] createShop(Random random, Inventory inventory, Player player) {
         Scanner scanner = new Scanner(System.in);
         Item[] shopItems = new Item[3];
 
-        money: while (true) {
+        // Die Schleife zum Prüfen ob der Player genügend Geld hat
 
             for (int i = 0; i < 3; i++) {
                 System.out.println();
             }
 
-            int z = 1;
-
+            // TUI
             System.out.println("Coins: " + player.coins);
             System.out.println("=== Shopify ===");
-
-            for (int i = 0; i < 3; i++) {
-                shopItems[i] = ItemFactory.getRandom(random);
-                System.out.println("(" + z + ") " + shopItems[i].name + " (" + shopItems[i].attackDamage + "AD | " + shopItems[i].heal + " HP)" + "   Coins: " + shopItems[i].price);
-                z++;
-            }
-            System.out.println("(" + z + ") Exit");
+            shopItems[0] = ItemFactory.getRandom(random);
+            System.out.println("(" + 1 + ") " + shopItems[0].name + " (" + shopItems[0].attackDamage + "AD | " + shopItems[0].heal + " HP)" + "   Coins: " + shopItems[0].price);
+            shopItems[1] = ItemFactory.getRandom(random);
+            System.out.println("(" + 2 + ") " + shopItems[1].name + " (" + shopItems[1].attackDamage + "AD | " + shopItems[1].heal + " HP)" + "   Coins: " + shopItems[1].price);
+            shopItems[2] = ItemFactory.getRandom(random);
+            System.out.println("(" + 3 + ") " + shopItems[2].name + " (" + shopItems[2].attackDamage + "AD | " + shopItems[2].heal + " HP)" + "   Coins: " + shopItems[2].price);
+            System.out.println("(" + 4 + ") Exit");
             System.out.println("===============");
 
             int choice = scanner.nextInt();
 
-            if (z == choice) {
+            if (4 == choice) {
                 return shopItems;
             }
 
@@ -411,14 +438,32 @@ class ShopCreater{
                 player.coins -= shopItems[choice].price;
             } else {
                 System.out.println("Nicht genuegend Geld!");
-                continue money;
+                ShopCreater.createShop(random, inventory, player);
             }
 
             inventory.addItem(shopItems[choice]);
             System.out.println("\nThank You :)");
-            break money;
 
-        }
         return shopItems;
     }
+}
+
+// hier wird exp zu lvl konvertiert
+class Level{
+     public void LevelUp(Player player){
+         while (player.exp >= player.expToNextLevel) {
+
+             player.exp -= player.expToNextLevel;
+             player.level++;
+
+             player.expToNextLevel += 50;
+
+             player.coins += 20;
+
+             System.out.println("LEVEL UP!");
+             System.out.println("Dein Level: " + player.level);
+             System.out.println("EXP fuer naechstes Level: " + player.expToNextLevel);
+         }
+
+     }
 }
