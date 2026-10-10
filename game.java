@@ -3,10 +3,11 @@ package org.example;
 import java.util.Scanner;
 import java.util.Random;
 import java.util.ArrayList;
+import java.util.random.RandomGenerator;
 
 // Spiel Start
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main() throws InterruptedException {
         Game game = new Game();
         game.play();
     }
@@ -40,16 +41,13 @@ class Player {
     }
 
     public void heal() {
-        health = Math.min(maxHealth, health + 35 );
+        health = Math.min(maxHealth, health + 25 );
     }
 
     public void revive(){
         health = maxHealth;
         coins = 0;
         exp = 0;
-    }
-    public void spell(){
-
     }
 }
 
@@ -78,21 +76,6 @@ class Enemy {
     }
 }
 
-// hier wird der shop erstellt
-class Shop {
-    String name;
-    int attackDamage;
-    int heal;
-    int price;
-
-    public Shop(String name, int attackDamage, int heal, int price){
-        this.name = name;
-        this.attackDamage = attackDamage;
-        this.heal = heal;
-        this.price = price;
-    }
-}
-
 // Item Logik, hier werden Items erstellt und verwendet
 class Item{
     String name;
@@ -100,13 +83,15 @@ class Item{
     int heal;
     int price;
     int sellPrice;
+    boolean onetimeuse;
 
-    public Item(String name, int attackDamage, int heal, int price, int sellPrice){
+    public Item(String name, int attackDamage, int heal, int price, int sellPrice, boolean onetimeuse){
         this.name = name;
         this.attackDamage = attackDamage;
         this.heal = heal;
         this.price = price;
         this.sellPrice = sellPrice;
+        this.onetimeuse = onetimeuse;
     }
 
     public void use(Player player, Enemy enemy)
@@ -143,6 +128,8 @@ class Game{
         Inventory inventory = new Inventory();
         Level level = new Level();
         Loot loot = new Loot();
+        DevTools devTools = new DevTools();
+        ShopCreater shopCreater = new ShopCreater();
 
         // TUI
         System.out.println
@@ -157,6 +144,9 @@ class Game{
         plchoise = scanner.nextInt();
         plchoise--;
         System.out.println("You Selected " + player[plchoise].name);
+
+        // Cheat
+        //devTools.getallItems(item, inventory);
 
         // Kämpfen bis Player tot ist
         out: while(player[plchoise].health >= 0)
@@ -227,6 +217,7 @@ class Game{
                     case 2:
                         // Player heal Logik
                         player[plchoise].heal();
+
                         break;
 
                     case 3:
@@ -249,9 +240,19 @@ class Game{
                         }
 
                         actionInv--;
+
                         Item selectedItem = inventory.getItem(actionInv);
                         selectedItem.use(player[plchoise], enemy[ran]);
-                        inventory.removeItem(selectedItem);
+
+
+                        if (inventory.getItem(actionInv).onetimeuse == true)
+                        {
+                            inventory.removeItem(selectedItem);
+                        }
+                        if (enemy[ran].health > 0)
+                        {
+                            enemy[ran].attack(player[plchoise]);
+                        }
 
                     {
                         IO.println("Ungültige Auswahl!");
@@ -283,7 +284,7 @@ class Game{
                     {
                         // TUI
                         System.out.println("Du hast einen Shop gefunden!");
-                        System.out.println("Rein gehen?");
+                        System.out.println("Reingehen?");
                         System.out.println("(1) Ja");
                         System.out.println("(2) Nein");
 
@@ -291,7 +292,7 @@ class Game{
 
                         if (choice == 1)
                         {
-                            ShopCreater.createShop(random, inventory, player[plchoise]);
+                            shopCreater.createShop(random, item, player[plchoise], inventory);
                         }
                     }
 
@@ -360,9 +361,9 @@ class PlayerFactory {
 
     public static Player[] createPlayers() {
         return new Player[] {
-                new Player("Warrior", 550, 550, 30, 0, 0, true, 0),
-                new Player("Mage", 200, 200, 60, 0, 0, true, 0),
-                new Player("Archer", 350, 350, 20, 0, 0, true, 0)
+                new Player("Warrior", 450, 450, 35, 0, 0, true, 1),
+                new Player("Mage", 260, 260, 55, 0, 0, true, 1),
+                new Player("Archer", 350, 350, 30, 0, 0, true, 1)
         };
     }
 }
@@ -372,9 +373,9 @@ class EnemyFactory {
 
     public static Enemy[] createEnemy() {
         return new Enemy[] {
-                new Enemy("Zombie", 150, 150, 10, 2, 15, true),
-                new Enemy("Goblin", 100, 100, 15, 1, 10, true),
-                new Enemy("Dragon", 350, 350, 20, 3, 25, true),
+                new Enemy("Zombie", 100, 100, 25, 8, 20, true),
+                new Enemy("Goblin", 140, 140, 27, 10, 25, true),
+                new Enemy("Dragon", 300, 300, 32, 25, 60, true),
         };
     }
 }
@@ -384,10 +385,10 @@ class ItemFactory {
 
     public static Item[] createItem() {
         return new Item[] {
-                new Item("OneShot Item (1000 AD)", 1000, 0, 100, 80),
-                new Item("Heal Potion (+100 HP)", 0, 100, 20, 15),
-                new Item("Heavy Sword (120 AD | -10 HP)", 120, -10, 30, 20),
-                new Item("Test", 35, 25, 20, 15)
+                new Item("OneShot Item (1000 AD)", 1000, 0, 100, 80, true),
+                new Item("Heal Potion (+100 HP)", 0, 100, 20, 15, true),
+                new Item("Heavy Sword (120 AD | -10 HP)", 120, -10, 30, 20, false),
+                new Item("Test", 35, 25, 20, 15, false)
                 // new Item("CleanItem", 1000, 1000, 1000, 1000),
         };
     }
@@ -404,45 +405,42 @@ class ItemFactory {
 // hiermit kann man sehr leicht den shop erstellen
 class ShopCreater{
 
-    public static Item[] createShop(Random random, Inventory inventory, Player player) {
+    public Item[] createShop(Random random, Item[] items, Player player, Inventory inventory) {
         Scanner scanner = new Scanner(System.in);
         Item[] shopItems = new Item[3];
+        shopItems[0] = ItemFactory.getRandom(random);
+        shopItems[1] = ItemFactory.getRandom(random);
+        shopItems[2] = ItemFactory.getRandom(random);
 
-        // Die Schleife zum Prüfen ob der Player genügend Geld hat
-
+        while (true) {
             for (int i = 0; i < 3; i++) {
                 System.out.println();
             }
 
-            // TUI
             System.out.println("Coins: " + player.coins);
             System.out.println("=== Shopify ===");
-            shopItems[0] = ItemFactory.getRandom(random);
             System.out.println("(" + 1 + ") " + shopItems[0].name + " (" + shopItems[0].attackDamage + "AD | " + shopItems[0].heal + " HP)" + "   Coins: " + shopItems[0].price);
-            shopItems[1] = ItemFactory.getRandom(random);
             System.out.println("(" + 2 + ") " + shopItems[1].name + " (" + shopItems[1].attackDamage + "AD | " + shopItems[1].heal + " HP)" + "   Coins: " + shopItems[1].price);
-            shopItems[2] = ItemFactory.getRandom(random);
             System.out.println("(" + 3 + ") " + shopItems[2].name + " (" + shopItems[2].attackDamage + "AD | " + shopItems[2].heal + " HP)" + "   Coins: " + shopItems[2].price);
             System.out.println("(" + 4 + ") Exit");
             System.out.println("===============");
 
             int choice = scanner.nextInt();
+            int choiceIndex = choice - 1;
 
             if (4 == choice) {
                 return shopItems;
             }
 
-            choice--;
-
-            if (player.coins >= shopItems[choice].price) {
-                player.coins -= shopItems[choice].price;
+            if (player.coins >= shopItems[choiceIndex].price) {
+                player.coins -= shopItems[choiceIndex].price;
+                inventory.addItem(shopItems[choiceIndex]);
+                break;
             } else {
                 System.out.println("Nicht genuegend Geld!");
-                ShopCreater.createShop(random, inventory, player);
             }
-
-            inventory.addItem(shopItems[choice]);
-            System.out.println("\nThank You :)");
+        }
+        System.out.println("\nThank You :)");
 
         return shopItems;
     }
@@ -466,4 +464,13 @@ class Level{
          }
 
      }
+}
+
+// Cheats ;)
+class DevTools{
+    public void getallItems(Item[] items, Inventory inventory){
+        for (int i = 0; i < items.length; i++) {
+            inventory.addItem(items[i]);
+        }
+    }
 }
